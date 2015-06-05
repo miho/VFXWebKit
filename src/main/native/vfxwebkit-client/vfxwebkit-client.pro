@@ -28,8 +28,7 @@ INCLUDEPATH += ../common/include/
 # BOOST
 INCLUDEPATH += ../ext/headers/
 
-#JDK_HOME = ${JDK_HOME}
-JDK_HOME = /Users/miho/installs/openjfx/jdks/jdk1.8.0_45-openjfx.jdk/Contents/Home
+message(Using JDK: $${JDK_HOME})
 
 LIBS += -L$$JDK_HOME/jre/lib/server
 LIBS += -ljvm
