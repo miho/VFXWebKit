@@ -7,8 +7,8 @@ Experimental WebKit Integration for JavaFX
 - Windows support
 - ...
 
-![](/resources/img/screenshot-01.png)
 ![](/resources/img/screenshot-02.png)
+![](/resources/img/screenshot-01.png)
 
 ## Build Instructions
 
