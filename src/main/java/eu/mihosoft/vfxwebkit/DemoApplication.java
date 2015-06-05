@@ -5,8 +5,7 @@
  */
 package eu.mihosoft.vfxwebkit;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.io.File;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
@@ -23,7 +22,10 @@ public class DemoApplication extends Application {
     @Override
     public void start(Stage primaryStage) {
         
-        System.load("/Users/miho/Dropbox/qt/VFXWebKit/src/main/resources/eu/mihosoft/vfxwebkit/native/osx/libvfxwebkit.1.0.0.dylib");
+        File libraryPath = new File(
+                "src/main/resources/eu/mihosoft/vfxwebkit/native/osx/libvfxwebkit.1.0.0.dylib");
+        
+        System.load(libraryPath.getAbsolutePath());
         
 //        new Thread(()->{NativeBinding.INSTANCE.init();}).start();
         
@@ -37,16 +39,17 @@ public class DemoApplication extends Application {
         
         w.getContentPane().getChildren().add(webView);
         
-        Window w2 = new Window("JavaFX WebView");
-        w2.setPrefSize(600, 440);
-        
-        WebView fxview = new WebView();
-        fxview.getEngine().load("http://learningwebgl.com/lessons/lesson04/index.html");
-        
-        w2.getContentPane().getChildren().add(fxview);
+//        Window w2 = new Window("JavaFX WebView");
+//        w2.setLayoutX(620);
+//        w2.setPrefSize(600, 440);
+//        
+//        WebView fxview = new WebView();
+//        fxview.getEngine().load("http://learningwebgl.com/lessons/lesson04/index.html");
+//        
+//        w2.getContentPane().getChildren().add(fxview);
         
         Pane root = new Pane();
-        root.getChildren().addAll(w,w2);
+        root.getChildren().add(w);
         
         Scene scene = new Scene(root, 1280, 1024);
         
