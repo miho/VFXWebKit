@@ -1,0 +1,213 @@
+/**
+ * WARNING: this is work in progress! Currently, this only works on OS X and Linux.
+ * 
+ * @author Michael Hoffer <info@mihosoft.eu>
+ */
+import de.undercouch.gradle.tasks.download.Download
+
+plugins {
+    id "de.undercouch.download" version "1.2"
+}
+
+apply plugin: 'java'
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.4'
+}
+
+sourceCompatibility = '1.8'
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+if (!hasProperty('mainClass')) {
+    ext.mainClass = 'eu.mihosoft.vfxwebkit.DemoApplication';
+}
+
+File nativeServerProjectFolder = "$projectDir/src/main/native/vfxwebkit-server" as File
+File nativeClientProjectFolder = "$projectDir/src/main/native/vfxwebkit-client" as File
+
+def loadProperties(String sourceFileName) {
+    
+    def config = new Properties()
+    def propFile = new File(projectDir,sourceFileName)
+    
+    if (propFile.isFile()) {
+        config.load(new FileInputStream(propFile))
+        for (Map.Entry property in config) {
+            ext.set(property.key, property.value)
+        }
+    }
+}
+
+// loads the property file
+loadProperties('build.properties')
+
+//manifest.mainAttributes("Main-Class" : ext.mainClass)
+
+repositories {
+    mavenCentral()
+
+    maven {
+        url "https://oss.sonatype.org/content/repositories/snapshots"
+    }
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.10'
+    compile group: 'org.jfxtras', name: 'jfxtras-window', version: '8.0-r3'
+}
+
+clean{
+    doFirst {
+        println(">> Cleaning Qt Server App:")
+        String makeCmd = "make clean"
+        def procMakeCmd = makeCmd.execute(makeCmd.split(" "), nativeServerProjectFolder);
+        procMakeCmd.in.eachLine {line -> println ">> MAKE CLEAN: "+line}
+        procMakeCmd.err.eachLine {line -> System.err.println( '>> MAKE CLEAN: ' + line)}
+        procMakeCmd.waitFor()
+        
+        println(">> Cleaning Qt Client App:")
+        String makeCmd2 = "make clean"
+        def procMakeCmd2 = makeCmd2.execute(makeCmd2.split(" "), nativeClientProjectFolder);
+        procMakeCmd2.in.eachLine {line -> println ">> MAKE CLEAN: "+line}
+        procMakeCmd2.err.eachLine {line -> System.err.println( '>> MAKE CLEAN: ' + line)}
+        procMakeCmd2.waitFor()
+    }
+    
+    delete "$nativeServerProjectFolder/dist/"
+    delete "$nativeClientProjectFolder/dist/"
+    delete "$projectDir/src/main/resources/eu/mihosoft/vfxwebkit/native/osx/"
+    delete "$projectDir/src/main/native/ext/headers/boost.zip"
+    delete "$projectDir/src/main/native/ext/headers/boost"
+}
+
+/**
+ * TODO check should also work on Windows
+ */
+task checkQt {
+    if (!new File("$QT5PATH/qmake").exists()) {
+        ant.fail("$QT5PATH/qmake does not exist. Check \$QT5PATH.")
+    }
+    
+    def cmd = "$QT5PATH/qmake --version"
+    def proc = cmd.execute(cmd.split(" "),new File(projectDir.toString()));
+    
+    def foundQt5Version = false;
+
+    proc.in.eachLine {line -> if (line.contains("Using Qt version 5.")){foundQt5Version=true}}
+    proc.waitFor()
+    
+    if (!foundQt5Version) {
+        ant.fail("$QT5PATH/qmake is from an incompatible Qt version. Version 5.x is required. Check \$QT5PATH.")
+    }
+}
+
+task createNativeHeaders (dependsOn: compileJava){
+    doFirst {
+        println(">> Generating Headers:")
+        String cmd = "javah -o src/main/native/vfxwebkit-client/vfxbindings.h -classpath $sourceSets.main.output.classesDir eu.mihosoft.vfxwebkit.NativeBinding"
+        
+        println(cmd)
+        
+        def proc = cmd.execute(cmd.split(" "),new File(projectDir.toString()));
+
+        proc.in.eachLine {line -> println ">> JAVAH: "+line}
+        proc.err.eachLine {line -> System.err.println( '>> JAVAH: ERROR: ' + line)}
+        proc.waitFor()
+    }
+}
+
+
+task downloadBoostHeaders(type: Download) {
+    src 'http://deps.mihosoft.eu/boost/1.58.0/headers/boost.zip'
+    dest "$projectDir/src/main/native/ext/headers/boost.zip"
+}
+
+task downloadAndUnzipBoostHeaders(dependsOn: downloadBoostHeaders, type: Copy) {
+    from zipTree(downloadBoostHeaders.dest)
+    into "$projectDir/src/main/native/ext/headers/"
+}
+
+
+
+task createNativeServer (dependsOn: [compileJava, checkQt, downloadAndUnzipBoostHeaders]){
+    doFirst {
+        println(">> Building Qt Server App:")
+
+        String qmakeCmd = "$QT5PATH/qmake"
+        def procQMake = qmakeCmd.execute(qmakeCmd.split(" "), nativeServerProjectFolder);
+        procQMake.in.eachLine {line -> println ">> QMAKE: "+line}
+        procQMake.err.eachLine {line -> System.err.println( '>> QMAKE: ERROR: ' + line)}
+        procQMake.waitFor()
+        
+        String makeCmd = "make clean all"
+        def procMakeCmd = makeCmd.execute(makeCmd.split(" "), nativeServerProjectFolder);
+        procMakeCmd.in.eachLine {line -> println ">> MAKE: "+line}
+        procMakeCmd.err.eachLine {line -> System.err.println( '>> MAKE: ' + line)}
+        procMakeCmd.waitFor()
+    }
+}
+
+task createNativeClient (dependsOn: [compileJava, checkQt, downloadAndUnzipBoostHeaders]){
+    doFirst {
+        println(">> Building Qt Client App:")
+
+        String qmakeCmd = "$QT5PATH/qmake"
+        def procQMake = qmakeCmd.execute(qmakeCmd.split(" "), nativeClientProjectFolder);
+        procQMake.in.eachLine {line -> println ">> QMAKE: "+line}
+        procQMake.err.eachLine {line -> System.err.println( '>> QMAKE: ERROR: ' + line)}
+        procQMake.waitFor()
+        
+        String makeCmd = "make clean all"
+        def procMakeCmd = makeCmd.execute(makeCmd.split(" "), nativeClientProjectFolder);
+        procMakeCmd.in.eachLine {line -> println ">> MAKE: "+line}
+        procMakeCmd.err.eachLine {line -> System.err.println( '>> MAKE: ' + line)}
+        procMakeCmd.waitFor()
+    }
+}
+    
+task copyNativeServerAppToResourceFolder(type: Copy) {
+    println(">> Copying Native Server App:")
+    
+    from "$nativeServerProjectFolder/dist/"
+    into "$projectDir/src/main/resources/eu/mihosoft/vfxwebkit/native/osx/"
+}
+
+task copyNativeClientLibsToResourceFolder(type: Copy) {
+    println(">> Copying Native Client Libs:")
+    
+    from "$nativeClientProjectFolder/dist/"
+    into "$projectDir/src/main/resources/eu/mihosoft/vfxwebkit/native/osx/"
+}
+
+tasks.copyNativeClientLibsToResourceFolder.dependsOn(createNativeClient)
+tasks.copyNativeServerAppToResourceFolder.dependsOn(createNativeServer)
+
+jar << {
+   include '**/*.app'
+   include '**/*.dylib'
+   include '**/*.so'
+   include '**/*.dll'
+}
+
+tasks.jar.dependsOn(
+    copyNativeServerAppToResourceFolder,
+    copyNativeClientLibsToResourceFolder
+);
+
+task run(type: JavaExec) {
+    
+    doFirst {
+        String serverCmd = "open $projectDir/src/main/resources/eu/mihosoft/vfxwebkit/native/osx/vfxwebkit-server.app"
+        def proc = serverCmd.execute(serverCmd.split(" "), nativeClientProjectFolder);
+        proc.in.eachLine {line -> println ">> Qt SERVER: "+line}
+        proc.err.eachLine {line -> System.err.println( '>> Qt SERVER: ' + line)}
+        proc.waitFor()
+    }
+    
+    classpath = sourceSets.main.runtimeClasspath
+    main = mainClass;
+    //    jvmArgs = ['-Dprism.forceGPU=true', '-Dprism.verbose=true']
+    jvmArgs = ['-Dprism.forceGPU=true']
+}
+
+
