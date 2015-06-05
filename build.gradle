@@ -118,13 +118,20 @@ task createNativeHeaders (dependsOn: compileJava){
 
 
 task downloadBoostHeaders(type: Download) {
+    
     src 'http://deps.mihosoft.eu/boost/1.58.0/headers/boost.zip'
     dest "$projectDir/src/main/native/ext/headers/boost.zip"
+    
+    // TODO find out why we can't set this property
+    // onlyIfNewer = false
+    
 }
 
 task downloadAndUnzipBoostHeaders(dependsOn: downloadBoostHeaders, type: Copy) {
+    
     from zipTree(downloadBoostHeaders.dest)
     into "$projectDir/src/main/native/ext/headers/"
+    
 }
 
 
@@ -137,13 +144,19 @@ task createNativeServer (dependsOn: [compileJava, checkQt, downloadAndUnzipBoost
         def procQMake = qmakeCmd.execute(qmakeCmd.split(" "), nativeServerProjectFolder);
         procQMake.in.eachLine {line -> println ">> QMAKE: "+line}
         procQMake.err.eachLine {line -> System.err.println( '>> QMAKE: ERROR: ' + line)}
-        procQMake.waitFor()
+        
+        if (procQMake.waitFor()!=0) {
+            ant.fail("running qmake failed")
+        }
         
         String makeCmd = "make clean all"
         def procMakeCmd = makeCmd.execute(makeCmd.split(" "), nativeServerProjectFolder);
         procMakeCmd.in.eachLine {line -> println ">> MAKE: "+line}
         procMakeCmd.err.eachLine {line -> System.err.println( '>> MAKE: ' + line)}
-        procMakeCmd.waitFor()
+        
+        if (procMakeCmd.waitFor()!=0) {
+            ant.fail("running make failed")
+        }
     }
 }
 
@@ -151,17 +164,29 @@ task createNativeClient (dependsOn: [compileJava, checkQt, downloadAndUnzipBoost
     doFirst {
         println(">> Building Qt Client App:")
 
-        String qmakeCmd = "$QT5PATH/qmake"
+        String qmakeCmd = "$QT5PATH/qmake JDK_HOME=$JDK_HOME"
+        
+        for(String s: qmakeCmd.split(" ")) {
+            println(s)
+        }
+        
         def procQMake = qmakeCmd.execute(qmakeCmd.split(" "), nativeClientProjectFolder);
         procQMake.in.eachLine {line -> println ">> QMAKE: "+line}
-        procQMake.err.eachLine {line -> System.err.println( '>> QMAKE: ERROR: ' + line)}
-        procQMake.waitFor()
+        procQMake.err.eachLine {line -> System.err.println( '>> QMAKE: ' + line)}
+        
+        
+        if (procQMake.waitFor()!=0) {
+            ant.fail("qmake failed")
+        }
         
         String makeCmd = "make clean all"
         def procMakeCmd = makeCmd.execute(makeCmd.split(" "), nativeClientProjectFolder);
         procMakeCmd.in.eachLine {line -> println ">> MAKE: "+line}
         procMakeCmd.err.eachLine {line -> System.err.println( '>> MAKE: ' + line)}
-        procMakeCmd.waitFor()
+        
+        if (procMakeCmd.waitFor()!=0) {
+            ant.fail("qmake failed")
+        }
     }
 }
     
@@ -202,6 +227,10 @@ task run(type: JavaExec) {
         proc.in.eachLine {line -> println ">> Qt SERVER: "+line}
         proc.err.eachLine {line -> System.err.println( '>> Qt SERVER: ' + line)}
         proc.waitFor()
+        
+        if (proc.waitFor()!=0) {
+            ant.fail("running qt server failed")
+        }
     }
     
     classpath = sourceSets.main.runtimeClasspath
