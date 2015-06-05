@@ -6,7 +6,9 @@ Experimental WebKit Integration for JavaFX
 - performance improvements (dirty rect etc.)
 - Windows support
 - ...
-- 
+
+![](/resources/img/screenshot-01.png)
+![](/resources/img/screenshot-02.png)
 
 ## Build Instructions
 
