@@ -19,12 +19,15 @@ Experimental WebKit Integration for JavaFX
 
 ### Setup Build properties
 
-Specify the Qt executable path in the `build.properties` file.
+Specify the Qt executable path `QT5PATH` and `JDK_HOME` variable in the `build.properties` file.
 
 **Example**
 
     # QT5 bin directory (contains qmake etc.)
     QT5PATH=/usr/local/opt/qt5/bin/
+    
+    # JDK version tht shall be used for JNI
+    JDK_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_45.jdk/Contents/Home/
 
 ### IDE
 
