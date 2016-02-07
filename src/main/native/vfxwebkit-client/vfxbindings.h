@@ -17,6 +17,14 @@ JNIEXPORT jbyteArray JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_pageBuffer
 
 /*
  * Class:     eu_mihosoft_vfxwebkit_NativeBinding
+ * Method:    pageBufferDirect
+ * Signature: (I)Ljava/nio/ByteBuffer;
+ */
+JNIEXPORT jobject JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_pageBufferDirect
+  (JNIEnv *, jobject, jint);
+
+/*
+ * Class:     eu_mihosoft_vfxwebkit_NativeBinding
  * Method:    isDirty
  * Signature: (I)Z
  */

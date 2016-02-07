@@ -1,1 +1,3 @@
 /.nb-gradle/
+/build/
+/src/main/native/ext/headers/

@@ -5,10 +5,19 @@
  */
 package eu.mihosoft.vfxwebkit;
 
+import com.sun.javafx.geom.BaseBounds;
+import com.sun.javafx.geom.transform.BaseTransform;
+import com.sun.javafx.jmx.MXNodeAlgorithm;
+import com.sun.javafx.jmx.MXNodeAlgorithmContext;
+import com.sun.javafx.sg.prism.NGExternalNode;
+import com.sun.javafx.sg.prism.NGNode;
 import java.io.File;
 import javafx.application.Application;
+import javafx.embed.swing.SwingNode;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 import jfxtras.scene.control.window.Window;
@@ -30,14 +39,14 @@ public class DemoApplication extends Application {
 //        new Thread(()->{NativeBinding.INSTANCE.init();}).start();
         
 //        NativeBinding.INSTANCE.init();
-        
-        VFXWebNode webView = VFXWebNode.newNode();
+ 
+        VFXWebNode webView = VFXWebNode.newInstance(VFXWebNode.NodeType.JFX);
 //        webView.getEngine().load("http://learningwebgl.com/lessons/lesson04/index.html");
-       
-        Window w = new Window("Qt WebKit & WebGL");
+
+        Window w = new Window("Qt WebKit & WebGL inside JavaFX");
         w.setPrefSize(600, 440);
         
-        w.getContentPane().getChildren().add(webView);
+        w.getContentPane().getChildren().add(webView.getNode());
         
 //        Window w2 = new Window("JavaFX WebView");
 //        w2.setLayoutX(620);
@@ -50,6 +59,8 @@ public class DemoApplication extends Application {
         
         Pane root = new Pane();
         root.getChildren().add(w);
+        
+        
         
         Scene scene = new Scene(root, 1280, 1024);
         

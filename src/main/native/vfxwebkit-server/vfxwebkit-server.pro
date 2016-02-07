@@ -4,6 +4,8 @@
 #
 #-------------------------------------------------
 
+QMAKE_MAC_SDK = macosx10.11
+
 QT       += core webkit webkitwidgets
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets

@@ -27,6 +27,7 @@ public enum NativeBinding {
 //    native void deletePage(int key);
 
     native byte[] pageBuffer(int key);
+    native ByteBuffer pageBufferDirect(int key);
     
 //
 //    native int pageBufferSize(int key);

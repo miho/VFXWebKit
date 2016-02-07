@@ -149,6 +149,99 @@ JNIEXPORT void JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_deletePage
 
 /*
  * Class:     eu_mihosoft_vfxwebkit_NativeBinding
+ * Method:    pageBufferDirect
+ * Signature: (I)Ljava/nio/ByteBuffer;
+ */
+JNIEXPORT jobject JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_pageBufferDirect
+  (JNIEnv * env, jobject o, jint key) {
+    
+    //    std::cout << "NATIVE: page buffer - begin -" << std::endl;
+
+
+        using namespace boost::interprocess;
+
+        //boost::interprocess::shared_memory_object::remove("vqt_shared_memory:page:info:0");
+        //boost::interprocess::shared_memory_object::remove("vqt_shared_memory:page:buffer:0");
+
+        //Open the shared memory object.
+        shared_memory_object shm_info
+        (open_only                    //only create
+           ,"vqt_shared_memory:page:info:0"              //name
+           ,read_write  //read-write mode
+        );
+
+        //Map the whole shared memory in this process
+        boost::interprocess::mapped_region info_region
+                (shm_info                       //What to map
+                 ,read_write   //Map it as read-write
+        );
+
+        //Get the address of the mapped region
+        void * info_addr       = info_region.get_address();
+
+        //Construct the shared structure in memory
+        vqt_shared_memory_info * info_data = static_cast<vqt_shared_memory_info*>(info_addr);
+
+        info_data->mutex.lock();
+
+        dirty = info_data->dirty;
+
+        //Create a shared memory object.
+        boost::interprocess::shared_memory_object shm_buffer
+                (open_only               //only create
+                 ,"vqt_shared_memory:page:buffer:0"   //name
+                 ,read_write   //read-write mode
+        );
+
+        //Map the whole shared memory in this process
+        boost::interprocess::mapped_region buffer_region
+                (shm_buffer    //What to map
+                 ,read_write   //Map it as read-write
+        );
+
+        //Get the address of the mapped region
+        void * buffer_addr       = buffer_region.get_address();
+
+        //Construct the shared structure in memory
+        uchar* buffer_data = (uchar*) buffer_addr;
+
+        /*
+        if (jvm == NULL || env==NULL || nativeBinding == NULL) {
+            std::cerr << "JavaVM, JNIEnv or native binding not initialized!" << std::endl;
+            return;
+        }
+
+        //JNIEnv* env = threading::attachThread(jvm);
+
+        jmethodID redrawM = env->GetMethodID(
+                    env->FindClass("eu/mihosoft/vfxwebkit/NativeBinding"),
+                    "redraw",
+                    "(IIIII)V");
+
+        env->CallVoidMethod(nativeBinding, redrawM,
+                                dirtyRect.x(), dirtyRect.y(),
+                                dirtyRect.width(), dirtyRect.height());
+
+    ////    threading::detachThread(jvm);
+
+        std::cout << "NATIVE: repaint end" << std::endl;
+
+    //    uchar* buffer = api.pageBuffer(key);
+       */
+
+    //    std::cout << "NATIVE: page buffer - end -" << std::endl;
+
+//      jbyteArray result = ucharArray2JByteArray(env, buffer_data,1024*768*4);
+
+        jobject result = env->NewDirectByteBuffer(buffer_addr, 1024*768*4);
+
+        info_data->mutex.unlock();
+
+        return result;
+}
+
+/*
+ * Class:     eu_mihosoft_vfxwebkit_NativeBinding
  * Method:    pageBuffer
  * Signature: (I)[B
  */
