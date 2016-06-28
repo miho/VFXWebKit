@@ -13,6 +13,7 @@ import javafx.animation.AnimationTimer;
 import javafx.scene.Node;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelFormat;
+import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import javafx.scene.image.WritablePixelFormat;
 import javafx.scene.layout.Region;
@@ -58,7 +59,8 @@ class VFXWebNodeFX extends Region implements VFXWebNode {
 
             @Override
             public void handle(long now) {
-                redraw(binding.pageBufferDirect(key), 0, 0, 1024, 768);
+//                redraw(binding.pageBufferDirect(key), 0, 0, 1024, 768);
+                redraw(binding.pageBuffer(key), 0, 0, 1024, 768);
             }
         };
 
@@ -77,7 +79,8 @@ class VFXWebNodeFX extends Region implements VFXWebNode {
             }
 
             if (binding.isDirty(key)) {
-                redraw(binding.pageBufferDirect(key), 0, 0, 1024, 768);
+//                redraw(binding.pageBufferDirect(key), 0, 0, 1024, 768);
+                redraw(binding.pageBuffer(key), 0, 0, 1024, 768);
                 
                 binding.setDirty(key, false);
             }
@@ -110,6 +113,9 @@ class VFXWebNodeFX extends Region implements VFXWebNode {
         
         int[] array = new int[intBuf.remaining()];
         intBuf.get(array);
+
+
+
 
         img.getPixelWriter().setPixels(
                 0, 0, (int) img.getWidth(), (int) img.getHeight(),
