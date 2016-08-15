@@ -47,6 +47,30 @@ JNIEXPORT void JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_setDirty
 JNIEXPORT void JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_load
   (JNIEnv *, jobject, jstring);
 
+/*
+ * Class:     eu_mihosoft_vfxwebkit_NativeBinding
+ * Method:    init
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_init
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     eu_mihosoft_vfxwebkit_NativeBinding
+ * Method:    lock
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_lock
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     eu_mihosoft_vfxwebkit_NativeBinding
+ * Method:    unlock
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_unlock
+  (JNIEnv *, jobject);
+
 #ifdef __cplusplus
 }
 #endif

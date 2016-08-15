@@ -54,6 +54,16 @@ public enum NativeBinding {
     native boolean isDirty(int key);
     native void setDirty(int key, boolean value);
     
+    // TODO needs key, works with one node only
     native void load(String url);
+    
+    // TODO needs key, works with one node only
+    native void init();
+    
+    // TODO needs key, works with one node only
+    native void lock();
+    
+    // TODO needs key, works with one node only
+    native void unlock();
 
 }

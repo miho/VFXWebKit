@@ -6,9 +6,17 @@
 #include <QPixelFormat>
 
 #include <iostream>
+#include <chrono>
+
+// TODO move to class (crappy var location)
+std::chrono::high_resolution_clock::time_point start;
+std::chrono::high_resolution_clock::time_point stop;
+bool newFrame;
 
 VFXWebPage::VFXWebPage(): painter(NULL), image(NULL)
 {
+    newFrame = true;
+
     QWebSettings::globalSettings()->setAttribute(QWebSettings::WebGLEnabled, true);
 
     setViewportSize(QSize(1024,768));
@@ -19,6 +27,8 @@ VFXWebPage::VFXWebPage(): painter(NULL), image(NULL)
     mainFrame()->setScrollBarPolicy(Qt::Vertical, Qt::ScrollBarAlwaysOff);
 
     mainFrame()->load(QUrl("http://carvisualizer.plus360degrees.com/threejs/"));
+    //mainFrame()->load(QUrl("http://data-arts.appspot.com/globe/"));
+    //mainFrame()->load(QUrl("http://media.tojicode.com/q3bsp/"));
 }
 
 int VFXWebPage::pageBufferSize() {
@@ -37,6 +47,25 @@ void VFXWebPage::onRepaintEvent(const QRect &dirtyRect) {
 
     if (image == NULL || painter == NULL) return;
 
+//    if (newFrame) {
+//        newFrame = false;
+//        start = std::chrono::high_resolution_clock::now();
+//        std::cout << "MSPF: start" << std::endl;
+//    } else {
+//        stop = std::chrono::high_resolution_clock::now();
+//        double elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count()*1e-6;
+
+//        std::cout << "MSPF: " << elapsed << std::endl;
+////        printf("SPF is %f ms", m_time.elapsed() / float(m_frameCount));
+////        printf("FPS is %f\n", m_frameCount / (float(m_time.elapsed()) / 1000.0f));
+//        if (elapsed < 30) {
+//            return;
+//        } else {
+//            newFrame = true;
+//        }
+//    }
+
+
     shm_info->mutex.lock();
 
 //    if (shm_info->new_url) {
@@ -49,9 +78,9 @@ void VFXWebPage::onRepaintEvent(const QRect &dirtyRect) {
         //setMinPageBufferSize(shm_info->w,shm_info->h);
     }
 
-    painter->begin(image);
+    //painter->begin(image);
     this->mainFrame()->render(painter, dirtyRect);
-    painter->end();
+    //painter->end();
 
     shm_info->dirty = true;
 
@@ -80,6 +109,7 @@ void VFXWebPage::setSharedMemBuffer(uchar* shm_buffer) {
 //    std::cout << "NATIVE: a new img: " << image << std::endl;
 
     painter = new QPainter();
+    painter->begin(image);
 }
 
 VFXWebPage::~VFXWebPage() {

@@ -12,6 +12,11 @@ import com.sun.javafx.jmx.MXNodeAlgorithmContext;
 import com.sun.javafx.sg.prism.NGExternalNode;
 import com.sun.javafx.sg.prism.NGNode;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.embed.swing.SwingNode;
 import javafx.scene.Node;
@@ -21,6 +26,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 import jfxtras.scene.control.window.Window;
+import org.apache.commons.io.FileUtils;
 
 /**
  *
@@ -30,9 +36,27 @@ public class DemoApplication extends Application {
     
     @Override
     public void start(Stage primaryStage) {
+        Path tmpFile = null;
+        try {
+            tmpFile = Files.createTempDirectory("eu.mihosoft.vfxwebkit");
+        } catch (IOException ex) {
+            Logger.getLogger(DemoApplication.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
+        }
         
-        File libraryPath = new File(
-                "src/main/resources/eu/mihosoft/vfxwebkit/native/osx/libvfxwebkit.1.0.0.dylib");
+        try {
+            FileUtils.copyDirectory(
+                    new File("src/main/resources/eu/mihosoft/vfxwebkit/"),
+                    tmpFile.toFile());
+//            FileUtils.copyDirectory(
+//                    new File("/Users/miho/Qt/qt/5.5/clang_64/lib/"),
+//                    new File(tmpFile.toFile(),"native/osx/"));
+        } catch (IOException ex) {
+            Logger.getLogger(DemoApplication.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        File libraryPath = new File(tmpFile.toFile(),
+                "native/osx/libvfxwebkit.1.0.0.dylib");
         
         System.load(libraryPath.getAbsolutePath());
         
@@ -40,7 +64,7 @@ public class DemoApplication extends Application {
         
 //        NativeBinding.INSTANCE.init();
  
-        VFXWebNode webView = VFXWebNode.newInstance(VFXWebNode.NodeType.JFX);
+        VFXWebNode webView = VFXWebNode.newInstance(VFXWebNode.NodeType.JFX_DIRECT_BUFFER);
 //        webView.getEngine().load("http://learningwebgl.com/lessons/lesson04/index.html");
 
         Window w = new Window("Qt WebKit & WebGL inside JavaFX");

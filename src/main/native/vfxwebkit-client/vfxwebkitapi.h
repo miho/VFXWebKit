@@ -1,8 +1,14 @@
 #ifndef VFXWEBKITAPI_H
 #define VFXWEBKITAPI_H
 
-#include <QHash>
-#include <QString>
+//#include <QHash>
+//#include <QString>
+
+// instead of Qt stuff, we use plain c++ & boost
+// for the client lib
+// therefore, we need to declare uchar (was provided by qt before)
+typedef unsigned char uchar;
+
 
 class VFXWebKitApi
 {

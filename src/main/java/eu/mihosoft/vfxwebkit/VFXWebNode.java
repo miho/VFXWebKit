@@ -17,8 +17,10 @@ public interface VFXWebNode {
     
     static VFXWebNode newInstance(NodeType type) {
         switch(type) {
-            case JFX:
-                return VFXWebNodeFX.newNode();
+            case JFX_COPY:
+                return VFXWebNodeFX.newNode(false);
+            case JFX_DIRECT_BUFFER:
+                return VFXWebNodeFX.newNode(true);
             case SWING:
                 return VFXWebNodeSwing.newNode();
             default: throw new RuntimeException("Type unsupported: " + type);
@@ -38,7 +40,8 @@ public interface VFXWebNode {
     Node getNode();
     
     enum NodeType {
-        JFX,
+        JFX_COPY,
+        JFX_DIRECT_BUFFER,
         SWING
     }
     

@@ -54,6 +54,8 @@ repositories {
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.10'
     compile group: 'org.jfxtras', name: 'jfxtras-window', version: '8.0-r3'
+    compile group: 'commons-io', name: 'commons-io', version: '2.5'
+    compile group: 'commons-io', name: 'commons-io', version: '2.5', classifier: 'sources'
 }
 
 clean{
@@ -84,11 +86,11 @@ clean{
  * TODO check should also work on Windows
  */
 task checkQt {
-    if (!new File("$QT5PATH/qmake").exists()) {
-        ant.fail("$QT5PATH/qmake does not exist. Check \$QT5PATH.")
+    if (!new File("$QT5PATH/bin/qmake").exists()) {
+        ant.fail("$QT5PATH/bin/qmake does not exist. Check \$QT5PATH.")
     }
     
-    def cmd = "$QT5PATH/qmake --version"
+    def cmd = "$QT5PATH/bin/qmake --version"
     def proc = cmd.execute(cmd.split(" "),new File(projectDir.toString()));
     
     def foundQt5Version = false;
@@ -97,7 +99,7 @@ task checkQt {
     proc.waitFor()
     
     if (!foundQt5Version) {
-        ant.fail("$QT5PATH/qmake is from an incompatible Qt version. Version 5.x is required. Check \$QT5PATH.")
+        ant.fail("$QT5PATH/bin/qmake is from an incompatible Qt version. Version 5.x is required. Check \$QT5PATH.")
     }
 }
 
@@ -138,7 +140,7 @@ task createNativeServer (dependsOn: [compileJava, checkQt, downloadAndUnzipBoost
     doFirst {
         println(">> Building Qt Server App:")
 
-        String qmakeCmd = "$QT5PATH/qmake"
+        String qmakeCmd = "$QT5PATH/bin/qmake"
         def procQMake = qmakeCmd.execute(qmakeCmd.split(" "), nativeServerProjectFolder);
         procQMake.in.eachLine {line -> println ">> QMAKE: "+line}
         procQMake.err.eachLine {line -> System.err.println( '>> QMAKE: ERROR: ' + line)}
@@ -155,6 +157,10 @@ task createNativeServer (dependsOn: [compileJava, checkQt, downloadAndUnzipBoost
         if (procMakeCmd.waitFor()!=0) {
             ant.fail("running make failed")
         }
+        
+        // modify info.plist
+        // TODO write '<key>LSAppNapIsDisabled</key><true/>' to plist to
+        // prevent app nap in server app
     }
 }
 
@@ -162,7 +168,7 @@ task createNativeClient (dependsOn: [compileJava, checkQt, downloadAndUnzipBoost
     doFirst {
         println(">> Building Qt Client App:")
 
-        String qmakeCmd = "$QT5PATH/qmake JDK_HOME=$JDK_HOME"
+        String qmakeCmd = "$QT5PATH/bin/qmake JDK_HOME=$JDK_HOME"
         
         for(String s: qmakeCmd.split(" ")) {
             println(s)
@@ -219,6 +225,8 @@ tasks.jar.dependsOn(
 
 task run(type: JavaExec) {
     
+    environment "DYLD_LIBRARY_PATH", "$QT5PATH"
+    
     doFirst {
         String serverCmd = "open $projectDir/src/main/resources/eu/mihosoft/vfxwebkit/native/osx/vfxwebkit-server.app"
         def proc = serverCmd.execute(serverCmd.split(" "), nativeClientProjectFolder);
@@ -234,7 +242,8 @@ task run(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     main = mainClass;
     //    jvmArgs = ['-Dprism.forceGPU=true', '-Dprism.verbose=true']
-    jvmArgs = ['-Dprism.forceGPU=true']
+    jvmArgs = ['-Dprism.forceGPU=true', "-Djava.library.path=$QT5PATH"]
+    // jvmArgs = ['-Dprism.forceGPU=true']
 }
 
 

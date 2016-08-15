@@ -104,17 +104,18 @@ VFXWebKitApi::VFXWebKitApi()
 
 
 
-
-
-
-
-
 #include <vqt_shared_memory.hpp>
 
 
 VFXWebKitApi api;
 
 bool dirty;
+void * buffer_addr ;
+boost::interprocess::shared_memory_object* shm_info;
+boost::interprocess::mapped_region* info_region;
+boost::interprocess::shared_memory_object* shm_buffer;
+boost::interprocess::mapped_region* buffer_region;
+vqt_shared_memory_info* info_data;
 
 /*
  * Class:     eu_mihosoft_vfxwebkit_NativeBinding
@@ -123,7 +124,53 @@ bool dirty;
  */
 JNIEXPORT void JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_init
   (JNIEnv *env, jobject obj) {
+    //    std::cout << "NATIVE: page buffer - begin -" << std::endl;
 
+        using namespace boost::interprocess;
+
+        //boost::interprocess::shared_memory_object::remove("vqt_shared_memory:page:info:0");
+        //boost::interprocess::shared_memory_object::remove("vqt_shared_memory:page:buffer:0");
+
+        //Open the shared memory object.
+        shm_info = new
+        shared_memory_object(open_only                    //only create
+           ,"vqt_shared_memory:page:info:0"              //name
+           ,read_write  //read-write mode
+        );
+
+        //Map the whole shared memory in this process
+         info_region = new boost::interprocess::mapped_region
+                (*shm_info                       //What to map
+                 ,read_write   //Map it as read-write
+        );
+
+        //Get the address of the mapped region
+        void * info_addr       = info_region->get_address();
+
+        //Construct the shared structure in memory
+        info_data = static_cast<vqt_shared_memory_info*>(info_addr);
+
+        info_data->mutex.lock();
+
+        dirty = info_data->dirty;
+
+        //Create a shared memory object.
+        shm_buffer = new boost::interprocess::shared_memory_object
+                (open_only               //only create
+                 ,"vqt_shared_memory:page:buffer:0"   //name
+                 ,read_write   //read-write mode
+        );
+
+        //Map the whole shared memory in this process
+        buffer_region = new boost::interprocess::mapped_region
+                (*shm_buffer    //What to map
+                 ,read_write   //Map it as read-write
+        );
+
+        //Get the address of the mapped region
+        buffer_addr = buffer_region->get_address();
+
+        info_data->mutex.unlock();
 }
 
 /*
@@ -154,56 +201,10 @@ JNIEXPORT void JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_deletePage
  */
 JNIEXPORT jobject JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_pageBufferDirect
   (JNIEnv * env, jobject o, jint key) {
-    
-    //    std::cout << "NATIVE: page buffer - begin -" << std::endl;
-
-
-        using namespace boost::interprocess;
-
-        //boost::interprocess::shared_memory_object::remove("vqt_shared_memory:page:info:0");
-        //boost::interprocess::shared_memory_object::remove("vqt_shared_memory:page:buffer:0");
-
-        //Open the shared memory object.
-        shared_memory_object shm_info
-        (open_only                    //only create
-           ,"vqt_shared_memory:page:info:0"              //name
-           ,read_write  //read-write mode
-        );
-
-        //Map the whole shared memory in this process
-        boost::interprocess::mapped_region info_region
-                (shm_info                       //What to map
-                 ,read_write   //Map it as read-write
-        );
-
-        //Get the address of the mapped region
-        void * info_addr       = info_region.get_address();
 
         //Construct the shared structure in memory
-        vqt_shared_memory_info * info_data = static_cast<vqt_shared_memory_info*>(info_addr);
+        // uchar* buffer_data = (uchar*) buffer_addr;
 
-        info_data->mutex.lock();
-
-        dirty = info_data->dirty;
-
-        //Create a shared memory object.
-        boost::interprocess::shared_memory_object shm_buffer
-                (open_only               //only create
-                 ,"vqt_shared_memory:page:buffer:0"   //name
-                 ,read_write   //read-write mode
-        );
-
-        //Map the whole shared memory in this process
-        boost::interprocess::mapped_region buffer_region
-                (shm_buffer    //What to map
-                 ,read_write   //Map it as read-write
-        );
-
-        //Get the address of the mapped region
-        void * buffer_addr       = buffer_region.get_address();
-
-        //Construct the shared structure in memory
-        uchar* buffer_data = (uchar*) buffer_addr;
 
         /*
         if (jvm == NULL || env==NULL || nativeBinding == NULL) {
@@ -234,8 +235,7 @@ JNIEXPORT jobject JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_pageBufferDir
 //      jbyteArray result = ucharArray2JByteArray(env, buffer_data,1024*768*4);
 
         jobject result = env->NewDirectByteBuffer(buffer_addr, 1024*768*4);
-
-        info_data->mutex.unlock();
+        dirty = true;
 
         return result;
 }
@@ -405,6 +405,7 @@ JNIEXPORT void JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_resizePage
  */
 JNIEXPORT jboolean JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_isDirty
   (JNIEnv *env, jobject obj, jint key) {
+    dirty = info_data->dirty;
     return boolC2J(dirty);
 }
 
@@ -416,6 +417,7 @@ JNIEXPORT jboolean JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_isDirty
 JNIEXPORT void JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_setDirty
   (JNIEnv *env, jobject obj, jint key, jboolean state) {
     dirty = state;
+    info_data->dirty = state;
 }
 
 /*
@@ -426,4 +428,24 @@ JNIEXPORT void JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_setDirty
 JNIEXPORT void JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_load
   (JNIEnv *env, jobject obj, jstring url) {
 
+}
+
+/*
+ * Class:     eu_mihosoft_vfxwebkit_NativeBinding
+ * Method:    lock
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_lock
+  (JNIEnv *env, jobject obj) {
+    info_data->mutex.lock();
+}
+
+/*
+ * Class:     eu_mihosoft_vfxwebkit_NativeBinding
+ * Method:    unlock
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_eu_mihosoft_vfxwebkit_NativeBinding_unlock
+  (JNIEnv *env, jobject obj) {
+    info_data->mutex.unlock();
 }

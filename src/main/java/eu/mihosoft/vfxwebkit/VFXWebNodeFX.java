@@ -6,10 +6,12 @@
 package eu.mihosoft.vfxwebkit;
 
 import com.sun.javafx.sg.prism.NGExternalNode;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import javafx.animation.AnimationTimer;
+import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelFormat;
@@ -17,6 +19,7 @@ import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import javafx.scene.image.WritablePixelFormat;
 import javafx.scene.layout.Region;
+import javafx.scene.paint.Color;
 
 /**
  *
@@ -31,18 +34,23 @@ class VFXWebNodeFX extends Region implements VFXWebNode {
     NGExternalNode node = new NGExternalNode();
     private final int key;
     private NativeBinding binding;
+    private ByteBuffer directBuffer;
+    private boolean useDirectBuffer;
 
-    public static VFXWebNodeFX newNode() {
+    public static VFXWebNodeFX newNode(boolean useDirectBuffer) {
+
         int key = NativeBinding.INSTANCE.nodes.keySet().size();
         while (NativeBinding.INSTANCE.nodes.keySet().contains(key)) {
             key++;
         }
-        return new VFXWebNodeFX(key, NativeBinding.INSTANCE);
+
+        return new VFXWebNodeFX(key, NativeBinding.INSTANCE, useDirectBuffer);
     }
 
-    VFXWebNodeFX(int key, NativeBinding binding) {
+    VFXWebNodeFX(int key, NativeBinding binding, boolean useDirectBuffer) {
         this.key = key;
         this.binding = binding;
+        this.useDirectBuffer = useDirectBuffer;
 //        binding.newPage(key);
         binding.nodes.put(key, this);
         img = new WritableImage(1024, 768);
@@ -55,12 +63,24 @@ class VFXWebNodeFX extends Region implements VFXWebNode {
 
         view.setStyle("-fx-border-color: green;");
 
+        NativeBinding.INSTANCE.init();
+
         AnimationTimer redrawTimer = new AnimationTimer() {
 
             @Override
             public void handle(long now) {
-//                redraw(binding.pageBufferDirect(key), 0, 0, 1024, 768);
-                redraw(binding.pageBuffer(key), 0, 0, 1024, 768);
+                if (useDirectBuffer) {
+                    if (directBuffer == null) {
+                        NativeBinding.INSTANCE.init();
+                        directBuffer = binding.pageBufferDirect(key);
+                    }
+                    directBuffer.rewind();
+                    NativeBinding.INSTANCE.lock();
+                    redraw(directBuffer, 0, 0, 1024, 768);
+                    NativeBinding.INSTANCE.unlock();
+                } else {
+                    redraw(binding.pageBuffer(key), 0, 0, 1024, 768);
+                }
             }
         };
 
@@ -81,7 +101,7 @@ class VFXWebNodeFX extends Region implements VFXWebNode {
             if (binding.isDirty(key)) {
 //                redraw(binding.pageBufferDirect(key), 0, 0, 1024, 768);
                 redraw(binding.pageBuffer(key), 0, 0, 1024, 768);
-                
+
                 binding.setDirty(key, false);
             }
 
@@ -91,35 +111,6 @@ class VFXWebNodeFX extends Region implements VFXWebNode {
         });
 
         setStyle("-fx-border-color: red;");
-    }
-
-    @Override
-    public void redraw(byte[] imgBuffer, int x1, int y1, int w, int h) {
-//        System.out.println("JVM redraw: x1: " + x1 + ", y1: " + y1);
-
-        
-        if (!binding.isDirty(key)) {
-            System.out.println("inactive: ");
-            
-            return;
-        }
-        
-        binding.setDirty(key, false);
-        
-        IntBuffer intBuf
-                = ByteBuffer.wrap(imgBuffer)
-                .order(ByteOrder.LITTLE_ENDIAN)
-                .asIntBuffer();
-        
-        int[] array = new int[intBuf.remaining()];
-        intBuf.get(array);
-
-
-
-
-        img.getPixelWriter().setPixels(
-                0, 0, (int) img.getWidth(), (int) img.getHeight(),
-                format, array, 0, (int) img.getWidth());
     }
 
     @Override
@@ -149,28 +140,43 @@ class VFXWebNodeFX extends Region implements VFXWebNode {
     }
 
     @Override
-    public void redraw(ByteBuffer imgBuffer, int x1, int y1, int w, int h) {
-        
-        
+    public void redraw(byte[] imgBuffer, int x1, int y1, int w, int h) {
+//        System.out.println("JVM redraw: x1: " + x1 + ", y1: " + y1);
+
         if (!binding.isDirty(key)) {
-            System.out.println("inactive: ");
-            
             return;
         }
-        
+
         binding.setDirty(key, false);
-        
+
         IntBuffer intBuf
-                = imgBuffer
+                = ByteBuffer.wrap(imgBuffer)
                 .order(ByteOrder.LITTLE_ENDIAN)
                 .asIntBuffer();
-        
-        int[] array = new int[intBuf.remaining()];
-        intBuf.get(array);
 
         img.getPixelWriter().setPixels(
                 0, 0, (int) img.getWidth(), (int) img.getHeight(),
-                format, array, 0, (int) img.getWidth());
+                format, intBuf, (int) img.getWidth()
+        );
+    }
+
+    @Override
+    public void redraw(ByteBuffer imgBuffer, int x1, int y1, int w, int h) {
+
+        if (!binding.isDirty(key)) {
+            return;
+        }
+
+        binding.setDirty(key, false);
+
+        IntBuffer intBuf = imgBuffer
+                .order(ByteOrder.LITTLE_ENDIAN)
+                .asIntBuffer();
+
+        img.getPixelWriter().setPixels(
+                0, 0, (int) img.getWidth(), (int) img.getHeight(),
+                format, intBuf, (int) img.getWidth()
+        );
     }
 
 }
