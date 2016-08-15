@@ -3,7 +3,7 @@ Experimental WebKit Integration for JavaFX
 
 ## TODO
 - Mouse/Keyboard integration
-- performance improvements (dirty rect etc.)
+- performance improvements (dirty rect etc.) **Update[15.08.2016]:** got direct buffers working   
 - Windows support
 - ...
 
