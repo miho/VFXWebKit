@@ -1,6 +1,8 @@
 # VFXWebKit
 Experimental WebKit Integration for JavaFX
 
+**This reository is outdated! The successor of this experimental repository is [NativeFX](https://github.com/miho/NativeFX).**
+
 ## TODO
 - Mouse/Keyboard integration
 - performance improvements (dirty rect etc.) **Update[15.08.2016]:** got direct buffers working   
